@@ -46,7 +46,7 @@ FROM quay.io/coreos/chunkah AS chunkah
 RUN --mount=from=rootfs,src=/,target=/chunkah,ro \
     --mount=type=bind,target=/run/src,rw \
         chunkah build \
-            --max-layers 128 \
+            --max-layers 256 \
             --prune /ostree \
             --prune /sysroot/ostree \
             > /run/src/out.ociarchive
