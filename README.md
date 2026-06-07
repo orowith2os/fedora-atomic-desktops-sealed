@@ -46,40 +46,104 @@ If you want to test them on real hardware, you will have to use `bootc install` 
 You can use the Fedora CoreOS live ISO for example.
 Notice: bootc 1.14.1 or later is required.
 
-### Manual installation using `bootc install to-disk`
+### Manual installation
 
-First, make sure that you have enough free space to pull the container image. If not, and if you have enough RAM, mount a tmpfs:
+Until we get support ready in Anaconda, we will use using `systemd-repart` to partition the system and `boot install to-filesystem` to install the sealed image.
 
-```
+To get full Secure Boot support, we will manually install shim.
+This will be done via bootupd in the future.
+
+First, make sure that you have enough free space to pull the container image.
+If not, and if you have enough RAM, mount a tmpfs:
+
+```console
 mount -t tmpfs -o size=10240M containers /var/lib/containers/storage/
 chcon "system_u:object_r:container_var_lib_t:s0" /var/lib/containers/storage
 ```
 
+Then partition the disk using the systemd-repart configuration from this repo:
+
+```console
+podman pull quay.io/fedora-atomic-desktops-sealed/kinoite:44
+
+systemd-repart --empty=force --definitions=repart.d /dev/nvme0n1 --dry-run=no --discard=no
+```
+
+Then mount the partitions to the expected location:
+
+```console
+cryptsetup open /dev/nvme0n1p2 root
+# Empty passphrase
+mount /dev/mapper/root /mnt/
+mkdir /mnt/boot
+mount /dev/nvme0n1p1 /mnt/boot/
+```
+
 Then pull the container image and use it to install the system:
 
-```
-podman pull quay.io/fedora-atomic-desktops-sealed/kinoite:44
+```console
+podman pull quay.io/fedora-atomic-desktops-sealed/kinoite-intel:44
+
 podman run --rm --privileged --pid=host --ipc=host \
   --security-opt label=type:unconfined_t \
   -v /var/lib/containers:/var/lib/containers -v /dev:/dev \
-  quay.io/fedora-atomic-desktops-sealed/kinoite:44 \
-  bootc install to-disk --wipe --bootloader=systemd --composefs-backend /dev/<disk>
+  -v /:/run/host \
+  quay.io/fedora-atomic-desktops-sealed/kinoite-intel:44 \
+  bootc install to-filesystem \
+    --source-imgref=registry:quay.io/fedora-atomic-desktops-sealed/kinoite-intel:44 \
+    --bootloader=systemd --composefs-backend --skip-finalize \
+    /run/host/mnt/
 ```
 
-### Enrolling Secure Boot keys
+Then manually fix the installation to setup shim:
 
-If you want to enroll your Secure Boot keys in your firmware, take a look at [sbctl](https://github.com/foxboron/sbctl) or [systemd-boot's loader.conf](https://www.freedesktop.org/software/systemd/man/latest/loader.conf.html#secure-boot-enroll).
-Make sure to read the [Option ROM section](https://github.com/Foxboron/sbctl/wiki/FAQ#option-rom) and to enroll Microsoft's keys to avoid "soft bricking" your hardware.
-
-Example commands to enroll keys using `sbctl`:
-
-```
-sbctl --config sbctl.conf status
-sbctl --config sbctl.conf enroll-keys --microsoft
-sbctl --config sbctl.conf list-enrolled-keys
+```console
+# Copies shim and related files from the Live ISO
+cp /usr/lib/efi/shim/16.1-5/EFI/BOOT/* /mnt/boot/EFI/BOOT/
+cp -r /usr/lib/efi/shim/16.1-5/EFI/fedora /mnt/boot/EFI/
+cp /usr/lib/efi/shim/16.1-5/EFI/fedora/mmx64.efi /mnt/boot/EFI/BOOT/
+mv /mnt/boot/EFI/systemd/systemd-bootx64.efi /mnt/boot/EFI/fedora/grubx64.efi
+rmdir /mnt/boot/EFI/systemd
 ```
 
-In the future, once `shim` is in the boot path, we will be able to use MOK to enroll custom keys instead.
+Then enable the boot menu timeout in systemd-boot config:
+
+```console
+sed -i 's/#timeout 3/timeout 3/' /mnt/boot/loader/loader.conf
+```
+
+And finally, enroll the signing key from this repo using mokutil:
+
+```console
+openssl x509 -in keys/db/db.pem -inform PEM -out db.der -outform DER
+mokutil --import db.der
+# Enter a short password, QWERTY compatible, you'll need to type it once on reboot
+mokutil --list-new
+```
+
+Then unmount the partitions and reboot:
+
+```console
+sync
+umount /mnt/boot/
+umount /mnt
+cryptsetup close root
+reboot
+```
+
+On reboot you will get a full screen dialog asking you to setup a new EFI boot entry.
+Let it do it.
+
+Then you will be asked to enroll a key using MOK (password input likely in QWERTY).
+
+Finally, once booted, you can setup automatic LUKS unlocking bound to TPM PCRs:
+
+```console
+systemd-cryptenroll --tpm2-device list
+systemd-cryptenroll --tpm2-device=/dev/tpmrm0 --tpm2-pcrs=7:sha256 /dev/nvme0n1p2
+```
+
+Reboot to give it a try.
 
 ## How to build your own
 
