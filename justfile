@@ -9,6 +9,8 @@ variant_repos := '(
     [bootc]="quay.io/bootc-devel/fedora-bootc-44-standard"
     [secureblue-silverblue]="ghcr.io/secureblue/silverblue-main-hardened"
     [secureblue-kinoite]="ghcr.io/secureblue/kinoite-main-hardened"
+    [bazzite-dx]="ghcr.io/ublue-os/bazzite-dx"
+    [bazzite-dx-gnome]="ghcr.io/ublue-os/bazzite-dx-gnome"
 )'
 
 # Version of the container image to use as a base for each variant
@@ -19,6 +21,8 @@ variant_versions := '(
     [bootc]="20260505-211509"
     [secureblue-silverblue]="20260507-44"
     [secureblue-kinoite]="20260507-44"
+    [bazzite-dx]="44.20260608"
+    [bazzite-dx-gnome]="44.20260608"
 )'
 
 # Container registry where the images will be pushed
@@ -86,7 +90,7 @@ build-tools:
 
 # Build a generic sealed container image derived from the Fedora Silverblue or
 # Kinoite unofficial bootable container image
-[arg('variant', pattern='silverblue|kinoite|bootc|secureblue-silverblue|secureblue-kinoite')]
+[arg('variant', pattern='silverblue|kinoite|bootc|secureblue-silverblue|secureblue-kinoite|bazzite-dx|bazzite-dx-gnome')]
 build variant:
     #!/bin/bash
     set -euo pipefail
@@ -111,7 +115,7 @@ build variant:
 
 # Extract the kernel from an image and remove the initrd to build a rechunked
 # base image with generic configuration
-[arg('variant', pattern='silverblue|kinoite|bootc|secureblue-silverblue|secureblue-kinoite')]
+[arg('variant', pattern='silverblue|kinoite|bootc|secureblue-silverblue|secureblue-kinoite|bazzite-dx|bazzite-dx-gnome')]
 build-base variant:
     #!/bin/bash
     set -euo pipefail
@@ -137,7 +141,7 @@ build-base variant:
         .
 
 # Build a sealed image with support for all GPU or only a specific GPU family
-[arg('variant', pattern='silverblue|kinoite|bootc|secureblue-silverblue|secureblue-kinoite'), arg('gpu', pattern='generic|amd|intel|nvidia')]
+[arg('variant', pattern='silverblue|kinoite|bootc|secureblue-silverblue|secureblue-kinoite|bazzite-dx|bazzite-dx-gnome'), arg('gpu', pattern='generic|amd|intel|nvidia')]
 build-uki variant gpu="generic":
     #!/bin/bash
     set -euo pipefail
@@ -166,7 +170,7 @@ build-uki variant gpu="generic":
         .
 
 # Install the container image to a QCOW2 disk image
-[arg('variant', pattern='silverblue|kinoite|bootc|secureblue-silverblue|secureblue-kinoite')]
+[arg('variant', pattern='silverblue|kinoite|bootc|secureblue-silverblue|secureblue-kinoite|bazzite-dx|bazzite-dx-gnome')]
 qcow2 variant:
     #!/bin/bash
     set -euo pipefail
@@ -190,7 +194,7 @@ qcow2 variant:
         {{variant}}-${version}.qcow2
 
 # Move the QCOW2 image to libvirt image store
-[arg('variant', pattern='silverblue|kinoite|bootc|secureblue-silverblue|secureblue-kinoite')]
+[arg('variant', pattern='silverblue|kinoite|bootc|secureblue-silverblue|secureblue-kinoite|bazzite-dx|bazzite-dx-gnome')]
 move-qcow2-libvirt-images variant:
     #!/bin/bash
     set -euo pipefail
@@ -219,7 +223,7 @@ generate-ovmf-vars:
         -o "OVMF_VARS_CUSTOM.qcow2"
 
 # Boot the QCOW2 image with libvirt
-[arg('variant', pattern='silverblue|kinoite|bootc|secureblue-silverblue|secureblue-kinoite')]
+[arg('variant', pattern='silverblue|kinoite|bootc|secureblue-silverblue|secureblue-kinoite|bazzite-dx|bazzite-dx-gnome')]
 libvirt variant:
     #!/bin/bash
     set -euo pipefail
