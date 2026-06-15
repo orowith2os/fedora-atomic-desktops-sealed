@@ -49,10 +49,10 @@ RUN --mount=from=rootfs,src=/,target=/chunkah,ro \
             --max-layers 256 \
             --prune /ostree \
             --prune /sysroot/ostree \
-            > /run/src/out.ociarchive
+            --output oci:/run/src/out
 
-# Create the final base image from the rechunked oci-archive
-FROM oci-archive:out.ociarchive as rootfs-chunked
+# Create the final base image from the rechunked oci output
+FROM oci:out as rootfs-chunked
 LABEL containers.bootc 1
 LABEL org.opencontainers.image.title="Fedora Atomic Desktop Sealed"
 LABEL org.opencontainers.image.source="https://github.com/travier/fedora-atomic-desktops-sealed"
