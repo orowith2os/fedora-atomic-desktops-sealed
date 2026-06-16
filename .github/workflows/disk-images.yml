@@ -16,11 +16,11 @@ on:
   #     - "main"
   #   paths:
   #     - ".github/workflows/disk-images.yml"
-  pull_request:
-    branches:
-      - "main"
-    paths:
-      - ".github/workflows/disk-images.yml"
+  # pull_request:
+  #   branches:
+  #     - "main"
+  #   paths:
+  #     - ".github/workflows/disk-images.yml"
   schedule:
     # FIXME: Manually set one hour after the container build
     - cron: '0 5 * * MON'
