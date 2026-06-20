@@ -40,13 +40,54 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  generate-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.expand.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: extractions/setup-just@v4
+
+      - name: Evaluate variants JSON
+        id: variants
+        run: |
+          VARIANTS_JSON=$(just --evaluate variants | jq -c .)
+          echo "json=$VARIANTS_JSON" >> $GITHUB_OUTPUT
+
+      - name: Expand matrix
+        id: expand
+        run: |
+          python3 << 'EOF'
+          import json, os
+
+          variants = json.loads(os.environ["VARIANTS_JSON"])
+          matrix = []
+
+          for variant, data in variants.items():
+              image_url = data["image_url"]
+              for release, tag in data["fedora_release_and_tag"]:
+                  matrix.append({
+                      "variant": variant,
+                      "fedora_release": release,
+                      "tag": tag,
+                      "image_url": image_url
+                  })
+
+          print("Expanded matrix:", matrix)
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"matrix={json.dumps(matrix)}")
+          EOF
+        env:
+          VARIANTS_JSON: ${{ steps.variants.outputs.json }}
+
   build-image:
+    needs: generate-matrix
     runs-on: "ubuntu-24.04"
     strategy:
       fail-fast: false
       matrix:
-        variant: ['silverblue', 'kinoite']
-        release: ['44', '45']
+        include: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
     steps:
       - name: "Checkout repo"
         uses: actions/checkout@v6
@@ -62,14 +103,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: "Generate version"
-        id: version
-        run: |
-          set -euxo pipefail
-          version="$(date '+%Y%m%d.0')"
-          echo "Using version: ${version}"
-          echo "version=${version}" >> "$GITHUB_OUTPUT"
-
       - name: "Get Secure Boot signing key"
         run: |
           mkdir -p /tmp/keys
@@ -83,22 +116,21 @@ jobs:
         uses: redhat-actions/buildah-build@v2
         with:
           image: ${{ env.REPO_NAME }}/${{ matrix.variant }}-kernel
-          tags: ${{ matrix.release }}.${{ steps.version.outputs.version }}
+          tags: ${{ matrix.fedora_release }}
           containerfiles: Containerfile.kernel
           oci: true
           build-args: |
-            BASE=quay.io/fedora-ostree-desktops/${{ matrix.variant }}:${{ matrix.release }}.${{ steps.version.outputs.version }}
+            BASE=${{ matrix.image_url }}:${{ matrix.tag }}
 
       - name: "Build base container image"
         uses: redhat-actions/buildah-build@v2
         with:
           image: ${{ env.REPO_NAME }}/${{ matrix.variant }}-base
-          tags: ${{ matrix.release }}.${{ steps.version.outputs.version }}
+          tags: ${{ matrix.fedora_release }}
           containerfiles: Containerfile.base
           oci: true
           build-args: |
-            BASE=quay.io/fedora-ostree-desktops/${{ matrix.variant }}:${{ matrix.release }}.${{ steps.version.outputs.version }}
-            SYSTEMDBOOT=quay.io/fedora-atomic-desktops-sealed/systemd-boot:${{ matrix.release }}
+            BASE=${{ matrix.image_url }}:${{ matrix.tag }}
           extra-args: |
             --skip-unused-stages=false
             --security-opt=label=disable
@@ -108,14 +140,14 @@ jobs:
         uses: redhat-actions/buildah-build@v2
         with:
           image: ${{ env.REPO_NAME }}/${{ matrix.variant }}
-          tags: ${{ matrix.release }}.${{ steps.version.outputs.version }} ${{ matrix.release }}
+          tags: ${{ matrix.fedora_release }}
           containerfiles: Containerfile.uki
           oci: true
           build-args: |
-            BASE=${{ env.REPO_NAME }}/${{ matrix.variant }}-base:${{ matrix.release }}.${{ steps.version.outputs.version }}
-            KERNEL=${{ env.REPO_NAME }}/${{ matrix.variant }}-kernel:${{ matrix.release }}.${{ steps.version.outputs.version }}
+            BASE=${{ env.REPO_NAME }}/${{ matrix.variant }}-base:${{ matrix.fedora_release }}
+            KERNEL=${{ env.REPO_NAME }}/${{ matrix.variant }}-kernel:${{ matrix.fedora_release }}
             GPU_FAMILY="intel"
-            TOOLS=quay.io/fedora-atomic-desktops-sealed/tools:${{ matrix.release }}
+            TOOLS=quay.io/fedora-atomic-desktops-sealed/tools:${{ matrix.fedora_release }}
           extra-args: |
             --security-opt=label=disable
             --volume /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}:/run/src
@@ -126,14 +158,14 @@ jobs:
         uses: redhat-actions/buildah-build@v2
         with:
           image: ${{ env.REPO_NAME }}/${{ matrix.variant }}-intel
-          tags: ${{ matrix.release }}.${{ steps.version.outputs.version }} ${{ matrix.release }}
+          tags: ${{ matrix.fedora_release }}
           containerfiles: Containerfile.uki
           oci: true
           build-args: |
-            BASE=${{ env.REPO_NAME }}/${{ matrix.variant }}-base:${{ matrix.release }}.${{ steps.version.outputs.version }}
-            KERNEL=${{ env.REPO_NAME }}/${{ matrix.variant }}-kernel:${{ matrix.release }}.${{ steps.version.outputs.version }}
+            BASE=${{ env.REPO_NAME }}/${{ matrix.variant }}-base:${{ matrix.fedora_release }}
+            KERNEL=${{ env.REPO_NAME }}/${{ matrix.variant }}-kernel:${{ matrix.fedora_release }}
             GPU_FAMILY="intel"
-            TOOLS=quay.io/fedora-atomic-desktops-sealed/tools:${{ matrix.release }}
+            TOOLS=quay.io/fedora-atomic-desktops-sealed/tools:${{ matrix.fedora_release }}
           extra-args: |
             --security-opt=label=disable
             --volume /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}:/run/src
@@ -144,14 +176,14 @@ jobs:
         uses: redhat-actions/buildah-build@v2
         with:
           image: ${{ env.REPO_NAME }}/${{ matrix.variant }}-amd
-          tags: ${{ matrix.release }}.${{ steps.version.outputs.version }} ${{ matrix.release }}
+          tags: ${{ matrix.fedora_release }}
           containerfiles: Containerfile.uki
           oci: true
           build-args: |
-            BASE=${{ env.REPO_NAME }}/${{ matrix.variant }}-base:${{ matrix.release }}.${{ steps.version.outputs.version }}
-            KERNEL=${{ env.REPO_NAME }}/${{ matrix.variant }}-kernel:${{ matrix.release }}.${{ steps.version.outputs.version }}
+            BASE=${{ env.REPO_NAME }}/${{ matrix.variant }}-base:${{ matrix.fedora_release }}
+            KERNEL=${{ env.REPO_NAME }}/${{ matrix.variant }}-kernel:${{ matrix.fedora_release }}
             GPU_FAMILY="amd"
-            TOOLS=quay.io/fedora-atomic-desktops-sealed/tools:${{ matrix.release }}
+            TOOLS=quay.io/fedora-atomic-desktops-sealed/tools:${{ matrix.fedora_release }}
           extra-args: |
             --security-opt=label=disable
             --volume /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}:/run/src
@@ -162,14 +194,14 @@ jobs:
         uses: redhat-actions/buildah-build@v2
         with:
           image: ${{ env.REPO_NAME }}/${{ matrix.variant }}-nvidia
-          tags: ${{ matrix.release }}.${{ steps.version.outputs.version }} ${{ matrix.release }}
+          tags: ${{ matrix.fedora_release }}
           containerfiles: Containerfile.uki
           oci: true
           build-args: |
-            BASE=${{ env.REPO_NAME }}/${{ matrix.variant }}-base:${{ matrix.release }}.${{ steps.version.outputs.version }}
-            KERNEL=${{ env.REPO_NAME }}/${{ matrix.variant }}-kernel:${{ matrix.release }}.${{ steps.version.outputs.version }}
+            BASE=${{ env.REPO_NAME }}/${{ matrix.variant }}-base:${{ matrix.fedora_release }}
+            KERNEL=${{ env.REPO_NAME }}/${{ matrix.variant }}-kernel:${{ matrix.fedora_release }}
             GPU_FAMILY="nvidia"
-            TOOLS=quay.io/fedora-atomic-desktops-sealed/tools:${{ matrix.release }}
+            TOOLS=quay.io/fedora-atomic-desktops-sealed/tools:${{ matrix.fedora_release }}
           extra-args: |
             --security-opt=label=disable
             --volume /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}:/run/src
@@ -193,7 +225,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
           image: ${{ env.REPO_NAME }}/${{ matrix.variant }}
           registry: ${{ env.REGISTRY_GHCR }}
-          tags: ${{ matrix.release }}.${{ steps.version.outputs.version }} ${{ matrix.release }}
+          tags: ${{ matrix.fedora_release }}
 
       - name: "Push Intel image to Container Registry (ghcr.io)"
         uses: redhat-actions/push-to-registry@v2
@@ -204,7 +236,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
           image: ${{ env.REPO_NAME }}/${{ matrix.variant }}-intel
           registry: ${{ env.REGISTRY_GHCR }}
-          tags: ${{ matrix.release }}.${{ steps.version.outputs.version }} ${{ matrix.release }}
+          tags: ${{ matrix.fedora_release }}
 
       - name: "Push AMD image to Container Registry (ghcr.io)"
         uses: redhat-actions/push-to-registry@v2
@@ -215,7 +247,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
           image: ${{ env.REPO_NAME }}/${{ matrix.variant }}-amd
           registry: ${{ env.REGISTRY_GHCR }}
-          tags: ${{ matrix.release }}.${{ steps.version.outputs.version }} ${{ matrix.release }}
+          tags: ${{ matrix.fedora_release }}
 
       - name: "Push NVIDIA image to Container Registry (ghcr.io)"
         uses: redhat-actions/push-to-registry@v2
@@ -226,7 +258,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
           image: ${{ env.REPO_NAME }}/${{ matrix.variant }}-nvidia
           registry: ${{ env.REGISTRY_GHCR }}
-          tags: ${{ matrix.release }}.${{ steps.version.outputs.version }} ${{ matrix.release }}
+          tags: ${{ matrix.fedora_release }}
 
       - name: "Sign generic container image (ghcr.io)"
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
@@ -277,7 +309,7 @@ jobs:
           password: ${{ secrets.BOT_SECRET }}
           image: ${{ env.REPO_NAME }}/${{ matrix.variant }}
           registry: ${{ env.REGISTRY_QUAY }}
-          tags: ${{ matrix.release }}.${{ steps.version.outputs.version }} ${{ matrix.release }}
+          tags: ${{ matrix.fedora_release }}
 
       - name: "Push Intel image to Container Registry (quay.io)"
         uses: redhat-actions/push-to-registry@v2
@@ -288,7 +320,7 @@ jobs:
           password: ${{ secrets.BOT_SECRET }}
           image: ${{ env.REPO_NAME }}/${{ matrix.variant }}-intel
           registry: ${{ env.REGISTRY_QUAY }}
-          tags: ${{ matrix.release }}.${{ steps.version.outputs.version }} ${{ matrix.release }}
+          tags: ${{ matrix.fedora_release }}
 
       - name: "Push AMD image to Container Registry (quay.io)"
         uses: redhat-actions/push-to-registry@v2
@@ -299,7 +331,7 @@ jobs:
           password: ${{ secrets.BOT_SECRET }}
           image: ${{ env.REPO_NAME }}/${{ matrix.variant }}-amd
           registry: ${{ env.REGISTRY_QUAY }}
-          tags: ${{ matrix.release }}.${{ steps.version.outputs.version }} ${{ matrix.release }}
+          tags: ${{ matrix.fedora_release }}
 
       - name: "Push NVIDIA image to Container Registry (quay.io)"
         uses: redhat-actions/push-to-registry@v2
@@ -310,7 +342,7 @@ jobs:
           password: ${{ secrets.BOT_SECRET }}
           image: ${{ env.REPO_NAME }}/${{ matrix.variant }}-nvidia
           registry: ${{ env.REGISTRY_QUAY }}
-          tags: ${{ matrix.release }}.${{ steps.version.outputs.version }} ${{ matrix.release }}
+          tags: ${{ matrix.fedora_release }}
 
       - name: "Sign generic container image (quay.io)"
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
