@@ -32,10 +32,6 @@ dest_registry := "quay.io/fedora-atomic-desktops-sealed"
 # Major Fedora version used
 release := "44"
 
-# Container image with systemd-boot signed. Will pull pre-signed binary by
-# default. Set 'dest_registry' above for your own builds.
-systemd_boot_container := dest_registry + "/systemd-boot:" + release
-
 # Container image with the tools for signing UKIs. Will pull a pre-built image
 # by default. Set 'dest_registry' above for your own builds.
 signing_tools_container := dest_registry + "/tools:" + release
@@ -54,17 +50,6 @@ generate-secure-boot-keys:
     podman run --rm -ti --security-opt=label=disable \
         --volume $(pwd):/run/src --workdir /run/src \
         {{dest_registry}}/sbctl:latest create-keys --config sbctl.conf
-
-# Sign systemd-boot with the Secure Boot key
-sign-systemd-boot:
-    #!/bin/bash
-    set -euo pipefail
-    podman build \
-        --tag {{dest_registry}}/systemd-boot:{{release}} \
-        --build-arg=RELEASE={{release}} \
-        --secret=id=secureboot_key,src=keys/db/db.key \
-        --secret=id=secureboot_crt,src=keys/db/db.pem \
-        --file Containerfile.systemd-boot
 
 # Sign shim with the Secure Boot key
 sign-shim:
@@ -102,7 +87,6 @@ build variant:
 
     podman build \
         --build-arg=BASE=${repo}:${version} \
-        --build-arg=SYSTEMDBOOT={{systemd_boot_container}} \
         --build-arg=TOOLS={{signing_tools_container}} \
         --tag {{dest_registry}}/{{variant}}:${version} \
         --tag {{dest_registry}}/{{variant}}:{{release}} \
@@ -133,7 +117,6 @@ build-base variant:
     podman build \
         --file Containerfile.base \
         --build-arg=BASE=${repo}:${version} \
-        --build-arg=SYSTEMDBOOT={{systemd_boot_container}} \
         --tag {{dest_registry}}/{{variant}}-base:${version} \
         --skip-unused-stages=false \
         --volume $(pwd):/run/src \

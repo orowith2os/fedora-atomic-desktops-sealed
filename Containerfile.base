@@ -2,14 +2,11 @@
 # SPDX-License-Identifier: CC0-1.0
 
 ARG BASE=overridden
-ARG SYSTEMDBOOT=overridden
 ARG TOOLS=overridden
 
 # Capture scripts from the git repo
 FROM scratch as scripts
 COPY scripts /
-
-FROM $SYSTEMDBOOT as systemd-boot
 
 FROM $BASE as rootfs-base
 
@@ -19,9 +16,6 @@ RUN --mount=type=tmpfs,target=/run \
     --mount=type=tmpfs,target=/var \
     --mount=type=bind,from=scripts,src=/,target=/run/scripts \
     /run/scripts/prepare-rootfs.sh
-
-# Replace Fedora's systemd-boot with our signed one
-COPY --from=systemd-boot /systemd-bootx64.efi /usr/lib/systemd/boot/efi/systemd-bootx64.efi
 
 # Make sure we pass the lints
 FROM rootfs-base as lint

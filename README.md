@@ -164,12 +164,6 @@ We will be able to use `bcvk` more once <https://github.com/bootc-dev/bcvk/issue
 just generate-secure-boot-keys
 ```
 
-- Sign systemd-boot with the Secure Boot key:
-
-```
-just sign-systemd-boot
-```
-
 - Build the container image with the tools to build and sign UKIs
 
 ```

@@ -11,8 +11,7 @@ set -euxo pipefail
 rm -f "/etc/yum.repos.d/fedora-cisco-openh264.repo"
 
 # Install fsverity utils to make it easier to check things
-# Install systemd-boot (will be replaced by the signed version in a later stage)
-dnf install -y fsverity-utils systemd-boot-unsigned
+dnf install -y fsverity-utils
 
 # Remove rpm-ostree and the backends in GNOME Software and Plasma Discover
 dnf remove -y \
@@ -43,6 +42,13 @@ if [[ "$(rpm -qa | grep -c grub2-efi-ia32)" -ne 0 ]]; then
 fi
 rpm -e --nodeps "${grub_packages[@]}"
 
+# Install unsigned systemd-boot to get the man pages
+dnf install systemd-boot-unsigned
+# Install signed systemd-boot from the Rawhide (non-production key)
+# See: https://koji.fedoraproject.org/koji/buildinfo?buildID=3017451
+dnf install "https://kojipkgs.fedoraproject.org//packages/systemd-boot/261~rc3/2.fc45/noarch/systemd-boot-x64-261~rc3-2.fc45.noarch.rpm"
+# Replace the unsigned built with the signed one
+cp -a /usr/lib/systemd/boot/efi/systemd-bootx64.efi{.signed,}
 
 if rpm -q --quiet fedora-release-identity-basic; then
 
