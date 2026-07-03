@@ -41,45 +41,7 @@ concurrency:
 
 jobs:
   generate-matrix:
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.expand.outputs.matrix }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: extractions/setup-just@v4
-
-      - name: Evaluate variants JSON
-        id: variants
-        run: |
-          VARIANTS_JSON=$(just --evaluate variants | jq -c .)
-          echo "json=$VARIANTS_JSON" >> $GITHUB_OUTPUT
-
-      - name: Expand matrix
-        id: expand
-        run: |
-          python3 << 'EOF'
-          import json, os
-
-          variants = json.loads(os.environ["VARIANTS_JSON"])
-          matrix = []
-
-          for variant, data in variants.items():
-              image_url = data["image_url"]
-              for release, tag in data["fedora_release_and_tag"]:
-                  matrix.append({
-                      "variant": variant,
-                      "fedora_release": release,
-                      "tag": tag,
-                      "image_url": image_url
-                  })
-
-          print("Expanded matrix:", matrix)
-          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
-              f.write(f"matrix={json.dumps(matrix)}")
-          EOF
-        env:
-          VARIANTS_JSON: ${{ steps.variants.outputs.json }}
+    uses: ./.github/workflows/generate-matrix.yml
 
   build-image:
     needs: generate-matrix
@@ -88,6 +50,7 @@ jobs:
       fail-fast: false
       matrix:
         include: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
+
     steps:
       - name: "Checkout repo"
         uses: actions/checkout@v6
