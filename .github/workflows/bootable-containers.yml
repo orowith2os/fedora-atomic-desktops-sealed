@@ -147,7 +147,7 @@ jobs:
             BASE=${{ env.REPO_NAME }}/${{ matrix.variant }}-base:${{ matrix.fedora_release }}
             KERNEL=${{ env.REPO_NAME }}/${{ matrix.variant }}-kernel:${{ matrix.fedora_release }}
             GPU_FAMILY="intel"
-            TOOLS=quay.io/fedora-atomic-desktops-sealed/tools:${{ matrix.fedora_release }}
+            TOOLS=${{ env.REPO_NAME }}/tools:${{ matrix.fedora_release }}
           extra-args: |
             --security-opt=label=disable
             --volume /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}:/run/src
@@ -165,7 +165,7 @@ jobs:
             BASE=${{ env.REPO_NAME }}/${{ matrix.variant }}-base:${{ matrix.fedora_release }}
             KERNEL=${{ env.REPO_NAME }}/${{ matrix.variant }}-kernel:${{ matrix.fedora_release }}
             GPU_FAMILY="intel"
-            TOOLS=quay.io/fedora-atomic-desktops-sealed/tools:${{ matrix.fedora_release }}
+            TOOLS=${{ env.REPO_NAME }}/tools:${{ matrix.fedora_release }}
           extra-args: |
             --security-opt=label=disable
             --volume /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}:/run/src
@@ -183,7 +183,7 @@ jobs:
             BASE=${{ env.REPO_NAME }}/${{ matrix.variant }}-base:${{ matrix.fedora_release }}
             KERNEL=${{ env.REPO_NAME }}/${{ matrix.variant }}-kernel:${{ matrix.fedora_release }}
             GPU_FAMILY="amd"
-            TOOLS=quay.io/fedora-atomic-desktops-sealed/tools:${{ matrix.fedora_release }}
+            TOOLS=${{ env.REPO_NAME }}/tools:${{ matrix.fedora_release }}
           extra-args: |
             --security-opt=label=disable
             --volume /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}:/run/src
@@ -201,7 +201,7 @@ jobs:
             BASE=${{ env.REPO_NAME }}/${{ matrix.variant }}-base:${{ matrix.fedora_release }}
             KERNEL=${{ env.REPO_NAME }}/${{ matrix.variant }}-kernel:${{ matrix.fedora_release }}
             GPU_FAMILY="nvidia"
-            TOOLS=quay.io/fedora-atomic-desktops-sealed/tools:${{ matrix.fedora_release }}
+            TOOLS=${{ env.REPO_NAME }}/tools:${{ matrix.fedora_release }}
           extra-args: |
             --security-opt=label=disable
             --volume /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}:/run/src
