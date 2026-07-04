@@ -6,12 +6,25 @@ on:
       matrix:
         description: "Expanded build matrix"
         value: ${{ jobs.generate-matrix.outputs.matrix }}
+      version:
+        description: "Version tag"
+        value: ${{ jobs.generate-matrix.outputs.version }}
+    inputs:
+      version:
+        required: false
+        type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        required: false
+        type: string
 
 jobs:
   generate-matrix:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.expand.outputs.matrix }}
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
 
@@ -48,3 +61,17 @@ jobs:
           EOF
         env:
           VARIANTS_JSON: ${{ steps.variants.outputs.json }}
+
+      - name: "Figure out daily version tag"
+        id: version
+        run: |
+          set -euxo pipefail
+          if [[ -n "${VERSION}" ]]; then
+            version="${VERSION}"
+          else
+            version="$(date '+%Y%m%d')"
+          fi
+          echo "Using version: ${version}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+        env:
+          VERSION: ${{ inputs.version }}

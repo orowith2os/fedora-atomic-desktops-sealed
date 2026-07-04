@@ -48,6 +48,8 @@ concurrency:
 jobs:
   generate-matrix:
     uses: ./.github/workflows/generate-matrix.yml
+    with:
+      version: ${{ inputs.version }}
 
   build-image:
     needs: generate-matrix
@@ -74,20 +76,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: "Figure out version to build"
-        id: version
-        run: |
-          set -euxo pipefail
-          if [[ -n "${VERSION}" ]]; then
-            version="${VERSION}"
-          else
-            version="$(date '+%Y%m%d').0"
-          fi
-          echo "Using version: ${version}"
-          echo "version=${version}" >> "$GITHUB_OUTPUT"
-        env:
-          VERSION: ${{ inputs.version }}
-
       - name: "Build disk image"
         run: |
           set -euxo pipefail
@@ -102,7 +90,7 @@ jobs:
             ${VARIANT}-${RELEASE}.${VERSION}.qcow2
         env:
           VARIANT: ${{ matrix.variant }}
-          VERSION: ${{ steps.version.outputs.version }}
+          VERSION: ${{ needs.generate-matrix.outputs.version }}
           RELEASE: ${{ matrix.fedora_release }}
 
       - name: "Install oras CLI"
@@ -138,7 +126,7 @@ jobs:
           echo "digest=${digest}" >> "$GITHUB_OUTPUT"
         env:
           VARIANT: ${{ matrix.variant }}
-          VERSION: ${{ steps.version.outputs.version }}
+          VERSION: ${{ needs.generate-matrix.outputs.version }}
           RELEASE: ${{ matrix.fedora_release }}
 
       - name: "Sign artifact (quay.io)"
