@@ -15,6 +15,10 @@ variants := '{
     "image_url": "quay.io/bootc-devel/fedora-bootc-44-standard",
     "fedora_release_and_tag": [[44, "latest"]]
   },
+  "bootc-45": {
+    "image_url": "quay.io/bootc-devel/fedora-bootc-45-standard",
+    "fedora_release_and_tag": [[45, "latest"]]
+  },
   "secureblue-silverblue": {
     "image_url": "ghcr.io/secureblue/silverblue-main-hardened",
     "fedora_release_and_tag": [[44, 44]]
