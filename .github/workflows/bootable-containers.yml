@@ -62,10 +62,6 @@ jobs:
       - name: "Checkout repo"
         uses: actions/checkout@v7
 
-        # so we pull the right image, for, for example, the tools images.
-      - name: Set Architecture Environment Variable
-        run: echo "ARCH=$(uname -m)" >> $GITHUB_ENV
-
       - name: "Runner setup"
         uses: travier/bootc-dev-actions/bootc-ubuntu-setup@main
 
@@ -127,7 +123,7 @@ jobs:
             BASE=${{ env.REPO_NAME }}/${{ matrix.variant }}-base:${{ matrix.fedora_release }}.${{ needs.generate-matrix.outputs.version }}
             KERNEL=${{ env.REPO_NAME }}/${{ matrix.variant }}-kernel:${{ matrix.fedora_release }}.${{ needs.generate-matrix.outputs.version }}
             GPU_FAMILY="intel"
-            TOOLS=${{ env.REGISTRY_GHCR }}/${{ env.REPO_NAME }}/tools:${{ matrix.fedora_release }}-${{ env.ARCH }}
+            TOOLS=${{ env.REGISTRY_GHCR }}/${{ env.REPO_NAME }}/tools:${{ matrix.fedora_release }}
           extra-args: |
             --security-opt=label=disable
             --volume /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}:/run/src
@@ -147,7 +143,7 @@ jobs:
             BASE=${{ env.REPO_NAME }}/${{ matrix.variant }}-base:${{ matrix.fedora_release }}.${{ needs.generate-matrix.outputs.version }}
             KERNEL=${{ env.REPO_NAME }}/${{ matrix.variant }}-kernel:${{ matrix.fedora_release }}.${{ needs.generate-matrix.outputs.version }}
             GPU_FAMILY="intel"
-            TOOLS=${{ env.REGISTRY_GHCR }}/${{ env.REPO_NAME }}/tools:${{ matrix.fedora_release }}-${{ env.ARCH }}
+            TOOLS=${{ env.REGISTRY_GHCR }}/${{ env.REPO_NAME }}/tools:${{ matrix.fedora_release }}
           extra-args: |
             --security-opt=label=disable
             --volume /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}:/run/src
@@ -167,7 +163,7 @@ jobs:
             BASE=${{ env.REPO_NAME }}/${{ matrix.variant }}-base:${{ matrix.fedora_release }}.${{ needs.generate-matrix.outputs.version }}
             KERNEL=${{ env.REPO_NAME }}/${{ matrix.variant }}-kernel:${{ matrix.fedora_release }}.${{ needs.generate-matrix.outputs.version }}
             GPU_FAMILY="amd"
-            TOOLS=${{ env.REGISTRY_GHCR }}/${{ env.REPO_NAME }}/tools:${{ matrix.fedora_release }}-${{ env.ARCH }}
+            TOOLS=${{ env.REGISTRY_GHCR }}/${{ env.REPO_NAME }}/tools:${{ matrix.fedora_release }}
           extra-args: |
             --security-opt=label=disable
             --volume /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}:/run/src
@@ -187,7 +183,7 @@ jobs:
             BASE=${{ env.REPO_NAME }}/${{ matrix.variant }}-base:${{ matrix.fedora_release }}.${{ needs.generate-matrix.outputs.version }}
             KERNEL=${{ env.REPO_NAME }}/${{ matrix.variant }}-kernel:${{ matrix.fedora_release }}.${{ needs.generate-matrix.outputs.version }}
             GPU_FAMILY="nvidia"
-            TOOLS=${{ env.REGISTRY_GHCR }}/${{ env.REPO_NAME }}/tools:${{ matrix.fedora_release }}-${{ env.ARCH }}
+            TOOLS=${{ env.REGISTRY_GHCR }}/${{ env.REPO_NAME }}/tools:${{ matrix.fedora_release }}
           extra-args: |
             --security-opt=label=disable
             --volume /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}:/run/src
