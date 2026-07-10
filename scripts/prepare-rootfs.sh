@@ -20,11 +20,17 @@ dnf remove -y \
     gnome-software-rpm-ostree \
     plasma-discover-rpm-ostree
 
-# Temporarily pull bootc from the rhcontainerbot copr to get the latest
-# fixes for Bazzite: https://copr.fedorainfracloud.org/coprs/rhcontainerbot/bootc/
-dnf install -y 'dnf5-command(copr)'
-dnf copr enable -y rhcontainerbot/bootc "fedora-$(source /etc/os-release && echo "$VERSION_ID")-x86_64"
-dnf upgrade -y --refresh bootc
+
+NAME="$(source /etc/os-release && echo "${NAME}")"
+if [[ "${NAME}" == "Bazzite" ]]; then
+    # Temporarily pull bootc from the rhcontainerbot copr to get the latest
+    # fixes for Bazzite: https://copr.fedorainfracloud.org/coprs/rhcontainerbot/bootc/
+    dnf install -y 'dnf5-command(copr)'
+    dnf copr enable -y rhcontainerbot/bootc "fedora-$(source /etc/os-release && echo "$VERSION_ID")-x86_64"
+else
+    # Install latest bootc release
+    dnf upgrade -y --enablerepo=updates-testing --refresh bootc
+fi
 
 # Uninstall bootupd (no support for systemd-boot yet)
 rpm -e bootupd
