@@ -18,7 +18,8 @@ dnf remove -y \
     rpm-ostree \
     rpm-ostree-libs \
     gnome-software-rpm-ostree \
-    plasma-discover-rpm-ostree
+    plasma-discover-rpm-ostree \
+    waydroid
 
 
 NAME="$(source /etc/os-release && echo "${NAME}")"
