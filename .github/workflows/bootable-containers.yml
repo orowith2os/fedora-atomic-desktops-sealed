@@ -122,7 +122,7 @@ jobs:
           build-args: |
             BASE=${{ env.REPO_NAME }}/${{ matrix.variant }}-base:${{ matrix.fedora_release }}.${{ needs.generate-matrix.outputs.version }}
             KERNEL=${{ env.REPO_NAME }}/${{ matrix.variant }}-kernel:${{ matrix.fedora_release }}.${{ needs.generate-matrix.outputs.version }}
-            GPU_FAMILY="intel"
+            GPU_FAMILY="generic"
             TOOLS=${{ env.REGISTRY_GHCR }}/${{ env.REPO_NAME }}/tools:${{ matrix.fedora_release }}
           extra-args: |
             --security-opt=label=disable
