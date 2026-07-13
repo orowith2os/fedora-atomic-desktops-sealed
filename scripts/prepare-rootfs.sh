@@ -27,6 +27,7 @@ if [[ "${NAME}" == "Bazzite" ]]; then
     # fixes for Bazzite: https://copr.fedorainfracloud.org/coprs/rhcontainerbot/bootc/
     dnf install -y 'dnf5-command(copr)'
     dnf copr enable -y rhcontainerbot/bootc "fedora-$(source /etc/os-release && echo "$VERSION_ID")-x86_64"
+    dnf upgrade -y --refresh bootc
 else
     # Install latest bootc release
     dnf upgrade -y --enablerepo=updates-testing --refresh bootc
