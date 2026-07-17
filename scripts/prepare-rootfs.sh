@@ -20,7 +20,7 @@ dnf remove -y \
     gnome-software-rpm-ostree \
     plasma-discover-rpm-ostree
 
-dnf install -y bootc
+dnf install -y --refresh bootc
 
 # Uninstall bootupd (no support for systemd-boot yet)
 rpm -e bootupd
