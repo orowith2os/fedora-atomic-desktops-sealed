@@ -12,10 +12,6 @@ set -euxo pipefail
 rm -f "/etc/yum.repos.d/fedora-cisco-openh264.repo"
 # Install ukify & signing tools
 dnf install -y systemd-ukify sbsigntools jq
-# Temporarily pull bootc from the rhcontainerbot copr to get the latest
-# fixes for Bazzite: https://copr.fedorainfracloud.org/coprs/rhcontainerbot/bootc/
-dnf install -y 'dnf5-command(copr)'
-dnf copr enable -y rhcontainerbot/bootc
 dnf install -y bootc
 # Prepare output dir
 mkdir -p /boot/EFI/Linux
