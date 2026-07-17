@@ -20,7 +20,9 @@ dnf remove -y \
     gnome-software-rpm-ostree \
     plasma-discover-rpm-ostree
 
-dnf install -y --refresh bootc
+wget https://kojipkgs.fedoraproject.org//packages/bootc/1.16.3/1.fc44/x86_64/bootc-1.16.3-1.fc44.x86_64.rpm
+dnf install -y ./bootc-1.16.3-1.fc44.x86_64.rpm
+rm ./bootc-1.16.3-1.fc44.x86_64.rpm
 
 # Uninstall bootupd (no support for systemd-boot yet)
 rpm -e bootupd
